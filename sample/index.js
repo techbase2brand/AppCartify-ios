@@ -24,7 +24,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 import 'react-native-gesture-handler';
 
 import SampleApp from './src/App';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './src/redux/store';
 import {name} from './app.json';
 import {AppRegistry} from 'react-native';
 
-AppRegistry.registerComponent(name, () => SampleApp);
+const Root = () => (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <SampleApp />
+      </PersistGate>
+    </Provider>
+  );
+AppRegistry.registerComponent(name, () => Root);

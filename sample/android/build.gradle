@@ -19,6 +19,15 @@ buildscript {
       classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
       classpath ('com.google.gms:google-services:4.4.1')
     }
+    allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "$rootDir/../node_modules/react-native-video-cache/android/libs"
+        }
+    }
+}
 }
 
 apply plugin: "com.facebook.react.rootproject"

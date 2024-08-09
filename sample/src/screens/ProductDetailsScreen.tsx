@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef, useCallback } from 'react';
 import { ScrollView, View, StyleSheet, Text, Image, Pressable, ActivityIndicator, TouchableOpacity, FlatList, Alert, ImageBackground, Linking } from 'react-native';
 import { Colors, useTheme } from '../context/Theme';
+import Video from 'react-native-video';
+import convertToProxyURL from 'react-native-video-cache';
 import { useCart } from '../context/Cart';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import { REEL_PLAY_WHITE } from '../assests/images';
+
 import { currency } from '../utils';
+import FeatureIcons from '../components/FeatureIcons'
 import Toast from 'react-native-simple-toast';
 import FontAwesome from 'react-native-vector-icons/dist/FontAwesome';
 import Share from 'react-native-share';
@@ -13,12 +18,16 @@ import { blackColor, redColor, whiteColor, lightGrayOpacityColor, goldColor, lig
 import { spacings, style } from '../constants/Fonts';
 import { BaseStyle } from '../constants/Style';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../utils';
-import { QUNATITY, getStoreDomain, getAdminAccessToken, YOU_MIGHT_LIKE, RATING_REVIEWS, getStoreFrontAccessToken, STOREFRONT_DOMAIN, ADMINAPI_ACCESS_TOKEN, STOREFRONT_ACCESS_TOKEN } from '../constants/Constants';
+import {Videos, QUNATITY, getStoreDomain, getAdminAccessToken, YOU_MIGHT_LIKE, RATING_REVIEWS, getStoreFrontAccessToken, STOREFRONT_DOMAIN, ADMINAPI_ACCESS_TOKEN, STOREFRONT_ACCESS_TOKEN } from '../constants/Constants';
 import { logEvent } from '@amplitude/analytics-react-native';
 import { ShopifyProduct } from '../../@types';
+import RecommendedVideo from '../components/RecommendedVideo';
+
 import { BACKGROUND_IMAGE, LADY_DONALD_RICE } from '../assests/images';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToWishlist, removeFromWishlist } from '../redux/actions/wishListActions';
+import EvilIcons from 'react-native-vector-icons/dist/EvilIcons';
+
 import AntDesign from 'react-native-vector-icons/dist/AntDesign';
 import Header from '../components/Header';
 import dynamicLinks from '@react-native-firebase/dynamic-links';
@@ -39,7 +48,9 @@ function ProductDetailsScreen({ navigation, route }: Props) {
   const { addToCart, addingToCart } = useCart();
   const styles = createStyles(colors);
   const [relatedProducts, setRelatedProducts] = useState<ShopifyProduct[]>([]);
-  const { tags, option, ids } = route?.params;
+  const { tags, option, ids, product } = route?.params;
+  console.log("product...",product);
+  
   const [selectedOptions, setSelectedOptions] = useState({});
   const dispatch = useDispatch();
   const { isDarkMode } = useThemes();
@@ -112,7 +123,7 @@ function ProductDetailsScreen({ navigation, route }: Props) {
     const fetchRelatedProducts = async () => {
       try {
         // Constructing the tags string from the array
-        const tagsString = tags.join(',');
+        const tagsString = tags?.join(',');
         const excludedProductTitle = route?.params?.product?.title;
 
         const response = await axios.get(`https://${STOREFRONT_DOMAIN}/admin/api/2024-04/products.json?tags=${tagsString}`, {
@@ -126,8 +137,8 @@ function ProductDetailsScreen({ navigation, route }: Props) {
           // Filtering products based on tags and ensuring they are active
           const filteredProducts = response.data.products.filter(product => {
             const isActive = product.status === 'active';
-            const isExcluded = product.title === excludedProductTitle || tags.includes(product.title);
-            const hasMatchingTag = tags.some(tag => product.tags.includes(tag));
+            const isExcluded = product.title === excludedProductTitle || tags?.includes(product.title);
+            const hasMatchingTag = tags?.some(tag => product.tags?.includes(tag));
 
             return isActive && !isExcluded && hasMatchingTag;
           });
@@ -140,7 +151,7 @@ function ProductDetailsScreen({ navigation, route }: Props) {
       }
     };
 
-    if (tags.length > 0) {
+    if (tags?.length > 0) {
       fetchRelatedProducts();
     } else {
       // Clear related products when tags are empty
@@ -182,6 +193,7 @@ function ProductDetailsScreen({ navigation, route }: Props) {
         selectedOptions={selectedOptions}
         handleSelectOption={handleSelectOption}
         ids={route?.params?.ids}
+        navigation={navigation}
       />
     </ImageBackground>
   );
@@ -207,6 +219,7 @@ function ProductDetails({
   selectedOptions,
   handleSelectOption,
   ids,
+  navigation
 }: {
   product: ShopifyProduct;
   loading?: boolean;
@@ -403,20 +416,139 @@ function ProductDetails({
       setLoadingProductId(null);
     });
   };
-  console.log(options)
+
+  const VIDEO_DURATION = 5000;
+  const [visibleVideoIndices, setVisibleVideoIndices] = useState([]);
+  const [playingIndex, setPlayingIndex] = useState(0);
+  const timerRef = useRef(null);
+
+  const viewabilityConfig1 = useRef({
+    viewAreaCoveragePercentThreshold: 50, // Determines what percentage of the item is visible
+  }).current;
+
+  const clearAllTimers = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const togglePlayingVideo = () => {
+    setPlayingIndex((prevIndex) => (prevIndex + 1) % visibleVideoIndices.length);
+  };
+
+  useEffect(() => {
+    clearAllTimers();
+    if (visibleVideoIndices.length > 0) {
+      setPlayingIndex(0);
+      timerRef.current = setInterval(togglePlayingVideo, VIDEO_DURATION);
+    }
+
+    return () => clearAllTimers();
+  }, [visibleVideoIndices]);
+
+  const onViewableItemsChanged1 = useRef(({ viewableItems }) => {
+    const newVisibleIndices = viewableItems.map(item => item.index);
+    if (newVisibleIndices.join() !== visibleVideoIndices.join()) {
+      setVisibleVideoIndices(newVisibleIndices);
+    }
+  }).current;
+
+  const renderItem1 = useCallback(
+    ({ item, index }) => (
+      <View style={styles.videoContainer}>
+        <RecommendedVideo
+          item={item}
+          isPlaying={visibleVideoIndices[playingIndex] === index}
+        />
+      </View>
+    ),
+    [visibleVideoIndices, playingIndex]
+  );
+  const staticWishList = [
+    {
+      id: '1',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/150_862716cb7c14fbfe75dfd3a7d7a9b053.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$25.00', currencyCode: 'USD' }, id: 'variant1', inventoryQuantity: 10 } }]
+      }
+    },
+    {
+      id: '2',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/168_c3b95aad0ae7e748b84c2dd6fb027560.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$30.00', currencyCode: 'USD' }, id: 'variant2', inventoryQuantity: 0 } }]
+      }
+    },
+    // {
+    //   id: '3',
+    //   title: 'Lorem ipsum dolor sit amet consectetur',
+    //   images: {
+    //     edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/150_862716cb7c14fbfe75dfd3a7d7a9b053.mp4' } }]
+    //   },
+    //   variants: {
+    //     edges: [{ node: { price: { amount: '$25.00', currencyCode: 'USD' }, id: 'variant1', inventoryQuantity: 10 } }]
+    //   }
+    // },
+    // {
+    //   id: '4',
+    //   title: 'Lorem ipsum dolor sit amet consectetur',
+    //   images: {
+    //     edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/168_c3b95aad0ae7e748b84c2dd6fb027560.mp4' } }]
+    //   },
+    //   variants: {
+    //     edges: [{ node: { price: { amount: '$30.00', currencyCode: 'USD' }, id: 'variant2', inventoryQuantity: 0 } }]
+    //   }
+    // }
+  ];
   return (
     <View>
       <ScrollView
         style={{ width: "100%", height: "93.8%", paddingBottom: spacings.large }}
         showsVerticalScrollIndicator={false}
       >
-        <View key={product?.id} style={[styles.productItem, borderRadius10, { width: "100%", paddingBottom: hp(12), }]}>
-          <Image
+        <View key={product?.id} style={[styles.productItem, borderRadius10, { width: "100%", paddingBottom: hp(12)}]}>
+          {/* <Image
             resizeMethod="resize"
             style={[styles.productImage, resizeModeCover, borderRadius10]}
             alt={image?.altText}
             source={{ uri: (image?.src) ? (image?.src) : (image?.url) ? (image?.url) : image }}
-          />
+          /> */}
+          <View style={{width:wp(95), height:hp(40),overflow:"hidden", borderRadius:10}}>
+          <Video
+          bufferConfig={{
+            minBufferMs: 2000,
+            maxBufferMs: 5000,
+            bufferForPlaybackMs: 1000,
+            bufferForPlaybackAfterRebufferMs: 1500,
+          }}
+          // poster={item?.thumb_url}
+          // posterResizeMode={'cover'}
+          source={{ uri: convertToProxyURL(product?.url) }}
+          style={{width:"100%", height:"100%"}}
+          resizeMode="cover"
+          repeat={true}
+          muted
+          maxBitRate={2000000}
+          hideShutterView={true}
+          onBuffer={e => {
+            console.log('e.isBuffering', e.isBuffering);
+            if (e.isBuffering == true) {
+              // setLoading(true);
+                
+            } else {
+              // setLoading(false);
+            }
+          }}
+
+        />
+        </View>
           <TouchableOpacity style={[positionAbsolute, alignJustifyCenter, styles.favButton]} onPress={onPressFavButton}>
             <AntDesign
               name={isSelected ? "heart" : "hearto"}
@@ -428,23 +560,36 @@ function ProductDetails({
             <View>
               <View style={[flexDirectionRow, { width: "100%" }]}>
                 <View style={{ width: "90%" }}>
-                  <Text style={[styles.productTitle, { color: themecolors.blackColor }]}>{product.title}</Text>
+                  <Text style={[styles.productTitle, { color: themecolors.blackColor }]}>Regular Fit Slogen</Text>
                 </View>
                 <TouchableOpacity style={[alignJustifyCenter, styles.shareButton]} onPress={() => shareProduct(product.id)}>
-                  <FontAwesome name="share" size={20} color={isDarkMode ? themecolors.lightPink : "#B5A2A2"} />
+                <Image
+            source={require('../assests/shareRed.png') }
+            style={{
+              width: 24,
+              height: 24,
+              marginVertical: 10,
+              objectFit: 'contain',
+            }}
+          />
+                  {/* <FontAwesome name="share" size={20} color={isDarkMode ? themecolors.lightPink : "#B5A2A2"} /> */}
                 </TouchableOpacity>
               </View>
-              <View style={[flexDirectionRow, { width: "100%" }]}>
-                <Text style={[styles.productPrice, { color: themecolors.blackColor }]}>{(variant?.price?.amount) ? (variant?.price?.amount) : (variant?.price)} {(variant?.price?.currencyCode) ? (variant?.price?.currencyCode) : shopCurrency}</Text>
+              <View style={[flexDirectionRow, { width: "100%" ,marginVertical:10}]}>
+                {/* <Text style={[styles.productPrice, { color: themecolors.blackColor }]}>{(variant?.price?.amount) ? (variant?.price?.amount) : (variant?.price)} {(variant?.price?.currencyCode) ? (variant?.price?.currencyCode) : shopCurrency}</Text> */}
+                
+                <Text style={[styles.productPrice, { color: themecolors.blackColor }]}>$ 620</Text>
                 <Pressable style={[flexDirectionRow, alignItemsCenter, { marginLeft: spacings.large }]}>
                   <FontAwesome name="star" size={15} color={goldColor} />
                   <Text style={[styles.productDescription, { color: themecolors.blackColor }]}>  <Text style={[styles.productDescription, textDecorationUnderline, { fontWeight: style.fontWeightMedium1x.fontWeight, color: themecolors.blackColor }]}>4.0/5</Text> (45 reviews)</Text>
                 </Pressable>
               </View>
-              {product.description && <Pressable onPress={toggleExpanded} style={{ marginVertical: spacings.large }}>
-                <Text style={[styles.productDescription, { color: "#808080" }]} numberOfLines={expanded ? null : 2}
-                  ellipsizeMode="tail">{product.description}</Text>
-              </Pressable>}
+              {/* {product.description && */}
+               <Pressable onPress={toggleExpanded} style={{ marginVertical: spacings.large }}>
+                <Text style={[styles.productDescription, { color: "#808080" }]} numberOfLines={expanded ? null : 3}
+                  ellipsizeMode="tail">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat  </Text>
+              </Pressable>
+              {/* }mar  */}
             </View>
             <View style={{ marginBottom: spacings.large }}>
               {/* <Text style={styles.relatedProductsTitle}>{SELECT_VARIANTS}</Text> */}
@@ -500,6 +645,7 @@ function ProductDetails({
               </View>
 
             </View>
+            <FeatureIcons/>
             <View style={{ marginBottom: spacings.large }}>
               <Text style={[styles.relatedProductsTitle, { color: themecolors.blackColor }]}>{RATING_REVIEWS}</Text>
               <View style={[styles.reviewSection, flexDirectionRow, alignItemsCenter]}>
@@ -527,7 +673,181 @@ function ProductDetails({
                   </View>
                   <Text style={[styles.productDescription, { fontSize: style.fontSizeSmall1x.fontSize, color: themecolors.blackColor }]}>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed ...</Text>
                 </View>
+               
               </View>
+              <Pressable style={[styles.outOfStockButton, borderRadius10, {marginVertical:20}]} onPress={()=> navigation.navigate("ReviewScreen")}>
+              <Text style={[styles.addToCartButtonText, textAlign]}>
+                View All Reviews
+              </Text>
+            </Pressable>
+            <Text style={[styles.relatedProductsTitle, { color: themecolors.blackColor , marginBottom:20}]}>Seller</Text>
+
+            <View style={[flexDirectionRow, alignItemsCenter]}>
+                <View style={[{ width: wp(20), height: hp(10) }, alignItemsCenter]}>
+                  <Image source={LADY_DONALD_RICE} style={[resizeModeContain, { width: wp(13), height: wp(13) }]} />
+                </View>
+                <View style={{ width: "75%" }}>
+                  <Text style={[styles.productPrice, { padding: spacings.small, color: themecolors.blackColor }]}>David Smith</Text>
+                  
+                  <Text style={[styles.productDescription, { fontSize: style.fontSizeSmall1x.fontSize, color: themecolors.blackColor }]}>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed ...</Text>
+                </View>
+               
+              </View>
+              <Pressable style={[styles.outOfStockButton, borderRadius10, {marginVertical:20}]}>
+                <View style={{flexDirection:"row", justifyContent:"center", alignItems:"center"}}>
+                <Text style={[styles.addToCartButtonText, textAlign]}>
+                View Profile  
+              </Text>
+              <EvilIcons name="external-link" size={27} color={whiteColor} style={{marginTop:0}} />
+
+                </View>
+              
+            </Pressable>
+
+            {/* Recommended videos section */}
+            <View style={{ marginVertical: 10, marginLeft: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent:"space-between", marginBottom: 10 }}>
+                {/* <Image source={REEL_PLAY_BLACK} style={styles.reelIcon} /> */}
+                <Text
+                  style={{
+                    fontSize: 18,
+                    marginTop: 5,
+                    fontWeight: '600',
+                    color: blackColor,
+                  }}>
+                  Recommended
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 5,
+                    fontWeight: '500',
+                    color: redColor,
+                  }}>
+                  See All
+                </Text>
+              </View>
+              {/* </View> */}
+              <FlatList
+                data={Videos}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                renderItem={renderItem1}
+                keyExtractor={item => item.video_id}
+                // onViewableItemsChanged={onViewableItemsChanged1}
+                // viewabilityConfig={viewabilityConfig1}
+                // getItemLayout={(data, index) => (
+                //   { length: width, offset: width * index, index }
+                // )}
+              />
+              
+            </View>
+
+
+            {/* //You Might Like Section */}
+            <Text style={[styles.relatedProductsTitle, { color: themecolors.blackColor , marginVertical:14}]}>You Might Like </Text>
+
+            <View style={[styles.detailsBox]}>
+            <FlatList
+              data={staticWishList}
+              keyExtractor={(item) => item?.id?.toString()}
+              numColumns={2}
+              renderItem={({ item, index }) => {
+                const imageUrl = item?.images?.edges?.[0]?.node?.url ?? item?.images?.nodes?.[0]?.url ?? item?.images?.[0]?.src;
+                const itemPrice = item?.variants?.edges?.[0]?.node?.price?.amount ?? item?.variants?.nodes?.[0]?.price ?? item?.variants?.[0]?.price;
+                const itemCurrencyCode = item?.variants?.edges?.[0]?.node?.price?.currencyCode ?? null;
+                const inventoryQuantity = item?.variants?.nodes ? item?.variants?.nodes[0]?.inventoryQuantity : (item?.variants?.[0]?.inventory_quantity ? item?.variants?.[0]?.inventory_quantity : (Array.isArray(item?.inventoryQuantity) ? item?.inventoryQuantity[0] : item?.inventoryQuantity));
+                const variantId = item?.variants?.edges ? item?.variants.edges[0]?.node.id : item.variants.nodes ? item.variants.nodes[0].id : item.variants[0].admin_graphql_api_id;
+                return (
+                  <View style={[styles.itemContainer,
+                    // { backgroundColor: isDarkMode ? grayColor : whiteColor }
+                  ]}>
+                    <Pressable style={[positionAbsolute, alignJustifyCenter, styles.favButton, { backgroundColor: "white", borderRadius: 100, padding: 4 }]} onPress={() => handlePress(item)}>
+                      <AntDesign
+                        name={"heart"}
+                        size={18}
+                        color={redColor}
+                      />
+                    </Pressable>
+
+                    <Pressable style={[positionAbsolute, alignJustifyCenter, styles.favButton1]} onPress={() => handlePress(item)}>
+                      <Image source={REEL_PLAY_WHITE}
+                        style={{
+                          width: 25,
+                          height: 25,
+                        }} />
+                    </Pressable>
+                    {/* <Image
+                        source={{ uri: imageUrl }}
+                        style={[styles.productImage ]}
+                      /> */}
+
+
+                    {/* <View style={{ width: 150, borderRadius: 10 }}> */}
+                    <TouchableOpacity style={{width:170,height: hp(20), borderRadius:10,overflow:"hidden" }}  >
+                      <Video
+                        bufferConfig={{
+                          minBufferMs: 2000,
+                          maxBufferMs: 5000,
+                          bufferForPlaybackMs: 1000,
+                          bufferForPlaybackAfterRebufferMs: 1500,
+                        }}
+                        // poster={item?.thumb_url}
+                        // posterResizeMode={'cover'}
+                        source={{ uri: convertToProxyURL(imageUrl) }}
+                        style={{ width: "100%",
+                        height: "100%",
+                        }}
+                        resizeMode="cover"
+                        repeat={true}
+                        maxBitRate={2000000}
+                        hideShutterView={true}
+                        onBuffer={e => {
+                          console.log('e.isBuffering', e.isBuffering);
+                          if (e.isBuffering == true) {
+                            // setLoading(true);
+
+                          } else {
+                            // setLoading(false);
+                          }
+                        }}
+
+                      />
+                    </TouchableOpacity>
+                    {/* </View> */}
+
+                    <View style={{ width: "100%", height: hp(7), alignItems: "center", justifyContent: "center" }}>
+                      <Text style={[styles.wishListItemName, { color: blackColor }]}>{item?.title}</Text>
+                      {/* <Text style={[styles.wishListItemPrice]}>{itemCurrencyCode}</Text> */}
+
+                    </View>
+                    <View style={[{ width: "100%", flexDirection: "row", paddingTop: 1, justifyContent: "space-between" }]}>
+                      {itemPrice && <View style={{ paddingTop: 8 }}>
+                        <Text style={[styles.wishListItemPrice, { color: blackColor }]}>{itemPrice} </Text>
+                      </View>
+                      }
+                      <TouchableOpacity style={styles.buyButton}>
+                        <Text style={{ color: '#fff', alignSelf: 'center' }}>Buy Now</Text>
+                      </TouchableOpacity>
+                      {/* {inventoryQuantity <= 0 ? <Pressable
+                          style={[styles.addtocartButton, borderRadius10, alignJustifyCenter]}
+                        >
+                          <Text style={styles.addToCartButtonText}>Out of stock</Text>
+                        </Pressable>
+                          : <Pressable
+                            style={[styles.addtocartButton, borderRadius10, alignJustifyCenter]}
+                            onPress={() => addToCartProduct(item, 1)}
+                          >
+                            {loadingProductId === variantId ? <ActivityIndicator size="small" color={whiteColor} /> :
+                              <Text style={styles.addToCartButtonText}>Add To Cart</Text>}
+                          </Pressable>} */}
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          </View>
               {/* <TouchableOpacity style={[styles.button, alignItemsCenter, borderRadius5]} onPress={onPreesViewReviewAll}>
                 <Text style={styles.buttonText}>{VIEW_ALL_REVIEWS}</Text>
               </TouchableOpacity> */}
@@ -564,7 +884,7 @@ function ProductDetails({
                       <Text style={[styles.relatedproductPrice, { paddingHorizontal: spacings.small, color: themecolors.blackColor }]}>{item?.variants[0]?.price}{shopCurrency}
                       </Text>
                     </View>
-                    <View style={[{ width: "100%", flexDirection: "row" }, justifyContentSpaceBetween, alignItemsCenter]}>
+                     <View style={[{ width: "100%", flexDirection: "row" }, justifyContentSpaceBetween, alignItemsCenter]}>
                       {inventoryQuantity === 0 ? <Pressable
                         style={[styles.relatedAddtocartButton, borderRadius10, alignJustifyCenter]}
                       >
@@ -617,16 +937,41 @@ function ProductDetails({
           </View>
         </View>}
         <View style={styles.addToCartButtonContainer}>
-          {getInventoryQuantity() <= 0 ? (
+          {/* {getInventoryQuantity() <= 0 ? (
             <Pressable style={[styles.outOfStockButton, borderRadius10]}>
               <Text style={[styles.addToCartButtonText, textAlign]}>
                 Out of stock
               </Text>
             </Pressable>
-          ) : (
+          ) : ( */}
             <Pressable
               disabled={loading || !variantSelected}
-              style={[styles.addToCartButton, borderRadius10]}
+              style={[styles.addToCartButton, borderRadius10,{width:wp(45),marginRight:20, backgroundColor:"#fff", borderColor:redColor, borderWidth:1}]}
+              // onPress={() => variant?.id && onAddToCart(variant.id, quantity)}
+              onPress={() => {
+                const selectedVariantId = getSelectedVariantId();
+                if (selectedVariantId) {
+                  onAddToCart(selectedVariantId, quantity);
+                } else {
+                  Alert.alert('Please select a variant before adding to cart');
+                }
+              }}
+            >
+              {loading ? (
+                <View style={[styles.addToCartButtonLoading, textAlign]}>
+                  <ActivityIndicator size="small" color={redColor} />
+                </View>
+              ) : (
+                <Text style={[styles.addToCartButtonLoading, textAlign, { color: redColor}]}>
+                  Add to cart
+                  {/* &bull;{' '} */}
+                  {/* {currency(((variant?.price.amount) ? (variant?.price?.amount) : variant?.price), variant?.price?.currencyCode)} */}
+                </Text>
+              )}
+            </Pressable>
+            <Pressable
+              disabled={loading || !variantSelected}
+              style={[styles.addToCartButton, borderRadius10,{width:wp(45)}]}
               // onPress={() => variant?.id && onAddToCart(variant.id, quantity)}
               onPress={() => {
                 const selectedVariantId = getSelectedVariantId();
@@ -643,13 +988,13 @@ function ProductDetails({
                 </View>
               ) : (
                 <Text style={[styles.addToCartButtonLoading, textAlign, { color: whiteColor }]}>
-                  Add to cart
+                  Buy Now
                   {/* &bull;{' '} */}
                   {/* {currency(((variant?.price.amount) ? (variant?.price?.amount) : variant?.price), variant?.price?.currencyCode)} */}
                 </Text>
               )}
             </Pressable>
-          )}
+          {/* )} */}
         </View>
       </View>
     </View>
@@ -703,11 +1048,14 @@ function createStyles(colors: Colors) {
     },
     productImage: {
       width: '100%',
-      height: hp(50),
-      marginTop: spacings.normal,
+      height: "100%",
+      // marginTop: spacings.normal,
     },
     addToCartButtonContainer: {
-      margin: spacings.large,
+      flexDirection:"row",
+      justifyContent:"space-between",
+      alignItems:"center",
+      margin: 10,
     },
     addToCartButton: {
       fontSize: style.fontSizeExtraExtraSmall.fontSize,
@@ -746,13 +1094,13 @@ function createStyles(colors: Colors) {
       color: blackColor,
     },
     addToCartButtonLoading: {
-      width: wp(44)
+      // width: wp(44)
     },
     shareButton: {
       width: wp(10),
       height: wp(10),
       zIndex: 10,
-      backgroundColor: lightPink,
+      // backgroundColor: lightPink,
       borderRadius: 100
     },
     relatedProductsContainer: {
@@ -817,11 +1165,11 @@ function createStyles(colors: Colors) {
     favButton: {
       width: wp(8),
       height: wp(8),
-      right: 20,
+      left: 20,
       top: 20,
       zIndex: 10,
       backgroundColor: whiteColor,
-      borderRadius: 10
+      borderRadius: 100
     },
     reviewSection: {
       width: "100%",
@@ -865,6 +1213,45 @@ function createStyles(colors: Colors) {
       fontFamily: 'GeneralSans-Variable'
       // marginLeft: spacings.small,
       // fontFamily: 'GeneralSans-Variable'
+    },
+    wishListItemName: {
+      color: blackColor,
+      fontSize: 14,
+      // fontWeight: style.fontWeightThin1x.fontWeight,
+    },
+    wishListItemPrice: {
+      fontSize: 18,
+      fontWeight: style.fontWeightThin1x.fontWeight,
+      // fontWeight: style.fontWeightMedium1x.fontWeight,
+      color: blackColor,
+      fontFamily: 'GeneralSans-Variable'
+    },
+    buyButton: {
+      height: 30,
+      width: 75,
+      backgroundColor: redColor,
+      alignItems: 'center',
+      borderRadius: 6,
+      justifyContent: 'center',
+    },
+    favButton1: {
+      width: wp(8),
+      height: wp(8),
+      right: 15,
+      top: 15,
+      zIndex: 10,
+      // backgroundColor:whiteColor,
+      borderRadius: 5
+    },
+    itemContainer: {
+      padding: spacings.large,
+      width: wp(48),
+      borderWidth: .1,
+    },
+    detailsBox: {
+      width: wp(100),
+      height: hp(87),
+      // padding: spacings.large
     },
   });
 }

@@ -226,6 +226,16 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
+  const getInitials = (name) => {
+    return name ? name.charAt(0).toUpperCase() : '';
+  };
+
+  const FallbackAvatar = ({ name }) => (
+    <View style={[styles.fallbackAvatar, { borderColor: colors.grayColor }]}>
+      <Text style={styles.fallbackAvatarText}>{getInitials(name)}</Text>
+    </View>
+  );
+
   return (
     // <ImageBackground style={[styles.container, flex]} source={BACKGROUND_IMAGE}>
     <ImageBackground style={[styles.container, flex, { backgroundColor: colors.whiteColor }]} source={isDarkMode ? '' : BACKGROUND_IMAGE}>
@@ -237,8 +247,9 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
         <Text style={[styles.text, { color: colors.blackColor }]}>{"Account"}</Text>
       </View>
       <View style={[styles.header, alignItemsCenter]}>
-        {image ? <Image source={{ uri: image }} style={[styles.profileImage, resizeModeContain, { borderColor: colors.grayColor }]} /> :
-          <Image source={PROFILE_IMAGE} style={[styles.profileImage, resizeModeContain]} />}
+      <FallbackAvatar name={userName} />
+        {/* {image ? <Image source={{ uri: image }} style={[styles.profileImage, resizeModeContain, { borderColor: colors.grayColor }]} /> :
+          <Image source={PROFILE_IMAGE} style={[styles.profileImage, resizeModeContain]} />} */}
         <Text style={[styles.username, { color: colors.blackColor }]}>{capitalizeFirstLetter(userName)}</Text>
       </View>
       <View style={styles.section}>
@@ -398,6 +409,21 @@ const styles = StyleSheet.create({
   },
   toggleButton: {
     marginRight: 10,
+  },
+  fallbackAvatar: {
+    width: wp(30),
+    height: wp(30),
+    borderRadius: 100,
+    alignSelf: 'center',
+    backgroundColor: '#a8326b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    // marginBottom: 20,
+  },
+  fallbackAvatarText: {
+    fontSize: 40,
+    color: '#fff',
   },
 });
 

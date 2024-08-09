@@ -1,8 +1,14 @@
+export const redColor="#B62025";
+export const grayColor="#646E77";
+export const black="#272727";
+export const green ="#0F6B00"
+
+
+
+// 
 export const darkgrayColor ="#252837";
 export const whiteColor ="#fff";
 export const blackColor ="#252837";
-export const grayColor="#646E77";
-export const redColor="#c82031";
 export const goldColor="#FFA928";
 export const lightGrayColor="#D1D4D6";
 export const lightBlueColor ="#42A5F5";

@@ -1,6 +1,6 @@
 export const PROFILE_ICON = require('./profile.png');
-export const SPLASH_IMAGE = require('./splashImage.png');
-export const HOME_ICON = require('./home.png');
+// export const SPLASH_IMAGE = require('./splashImage.png');
+// export const HOME_ICON = require('./home.png');
 export const QUICKEXPORT_ICON = require('./quickExport.png');
 export const SHOPPINGCART_ICON = require('./shoppingCart.png');
 export const SELECTEDBAR_ICON = require('./selectedBar.png');
@@ -10,7 +10,7 @@ export const GOOGLE_LOGO_IMAGE = require('./googleLogo.png');
 export const FACEBOOK_LOGO_IMAGE = require('./facebook.png');
 export const BACKGROUND_IMAGE = require('./backGround.png');
 export const HEART_ICON = require('./heart.png');
-export const MENU_ICON = require('./menu.png');
+// export const MENU_ICON = require('./menu.png');
 export const LADY_DONALD_RICE = require('./donaldRice.png');
 export const ABOUT_US_IMAGE = require('./aboutus.png');
 export const LOVE_DRINK_HEADER_LOGO = require('./loveDrinksHeader.png');
@@ -27,7 +27,7 @@ export const DELETE_IMAGE = require('./Delete.png');
 export const LOGOUT_IMAGE = require('./Logout.png');
 export const USER_IMAGE = require('./user.png');
 export const SHOPPINGBUCKET_ICON = require('./shoppingbucket.png');
-export const SEARCH_ICON = require('./search.png');
+// export const SEARCH_ICON = require('./search.png');
 export const WHITE_MENU_ICON = require('./whiteMenu.png');
 export const WHITE_SHOPPINGBUCKET_ICON = require('./whiteShoppingBucket.png');
 export const WHITE_SEARCH_ICON = require('./whiteSearch.png');
@@ -47,3 +47,35 @@ export const LOVE_DRINK_LOGO = require('./loveDrinks.png');
 export const APP_CARTIFY_HEADER_LOGO = require('./appCartifyHeaderLogo.png');
 export const APP_CARTIFY_HEADER_LOGO_NEW = require('./AppLogo.png');
 export const DARK_MODE_APP_CARTIFY_HEADER_LOGO_NEW = require('./darkModeAppLogo.png');
+
+
+
+// Splash
+export const SPLASH_IMAGE = require('./SplashImg.jpg');
+
+
+// BottomTab
+export const HOME_ICON = require('./BottomTabImages/Home.png');
+export const WALLET_ICON = require('./BottomTabImages/Wallet.png');
+export const SAVED_ICON = require('./BottomTabImages/Heart.png');
+export const CART_ICON = require('./BottomTabImages/Cart.png');
+export const ACCOUNT_ICON = require('./BottomTabImages/User.png');
+
+// Header
+export const BELL_ICON = require('./Header/Bell.png');
+export const MAIN_ICON = require('./Header/MainLogo.png');
+export const MENU_ICON = require('./Header/menuIcon.png');
+export const SEARCH_ICON = require('./Header/search.png');
+  
+
+// Home
+export const SEARCH_RED = require('./Header/SearchHome.png')
+export const SHARE = require('./VideoSection/share.png')
+export const ADD_TO_CART = require('./VideoSection/Add_to_Cart.png')
+export const VOICE = require('./VideoSection/Voice.png')
+export const REEL_PLAY_BLACK = require('./VideoSection/reelPlayBlack.png')
+export const REEL_PLAY_WHITE = require('./VideoSection/reelPlayWhite.png')
+
+export const VIP_LOGO = require('./vipLogo.png')
+export const VIP_POSTER = require('./vipPoster.png')
+

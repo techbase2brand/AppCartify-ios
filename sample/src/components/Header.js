@@ -6,10 +6,10 @@ import Ionicons from 'react-native-vector-icons/dist/Ionicons';
 import AntDesign from 'react-native-vector-icons/dist/AntDesign';
 import { spacings, style } from '../constants/Fonts';
 import { BaseStyle } from '../constants/Style';
-import { LOVE_DRINK_HEADER_LOGO, SHOPPINGCART_ICON, MENU_ICON, SHOPPINGBUCKET_ICON, SEARCH_ICON, DARK_MODE_APP_CARTIFY_HEADER_LOGO_NEW, WHITE_MENU_ICON, WHITE_SHOPPINGBUCKET_ICON, WHITE_SEARCH_ICON, APP_CARTIFY_HEADER_LOGO_NEW } from '../assests/images'
+import { LOVE_DRINK_HEADER_LOGO, SHOPPINGCART_ICON, MENU_ICON, SHOPPINGBUCKET_ICON, SEARCH_ICON, DARK_MODE_APP_CARTIFY_HEADER_LOGO_NEW, WHITE_MENU_ICON, WHITE_SHOPPINGBUCKET_ICON, WHITE_SEARCH_ICON, APP_CARTIFY_HEADER_LOGO_NEW, MAIN_ICON, BELL_ICON } from '../assests/images'
 import { widthPercentageToDP as wp, heightPercentageToDP as hp, } from '../utils';
 import { logEvent } from '@amplitude/analytics-react-native';
-import MenuModal from '../components/Modal/MenuModal';
+import MenuModal from './Modal/MenuModal';
 import { useCart } from '../context/Cart';
 import { useThemes } from '../context/ThemeContext';
 import { lightColors, darkColors } from '../constants/Color';
@@ -54,24 +54,30 @@ const Header = ({ navigation, backIcon, text, onPress, textinput, notification, 
           {menuImage && <TouchableOpacity style={[alignJustifyCenter, { width: wp(10) }]} onPress={() => setModalVisible(true)}>
             <Image source={isDarkMode ? WHITE_MENU_ICON : MENU_ICON} style={{ width: wp(8), height: hp(5), resizeMode: "contain", marginLeft: spacings.large }} />
           </TouchableOpacity>}
-          {text && <Text style={[styles.text, { color: colors.blackColor }]}>{trimcateText(text)}</Text>}
+          {text && <View style={[alignJustifyCenter, { width: wp(75) }]} onPress={() => setModalVisible(true)}>
+            <Text style={[ styles.text,{ color: colors.blackColor }]}>{trimcateText(text)}</Text> 
+          </View>}
         </View>
 
-        {image && <Image source={isDarkMode ? DARK_MODE_APP_CARTIFY_HEADER_LOGO_NEW : APP_CARTIFY_HEADER_LOGO_NEW} style={{ width: wp(34), height: hp(4.5), resizeMode: "contain", marginLeft: spacings.Large2x }} />}
+        {image && <Image source={isDarkMode ? DARK_MODE_APP_CARTIFY_HEADER_LOGO_NEW : MAIN_ICON} style={{ width: wp(34), height: hp(4.5), resizeMode: "contain", marginLeft: spacings.Large2x }} />}
         <View style={[flexDirectionRow, { width: "auto" }, justifyContentSpaceBetween, alignItemsCenter]}>
           {textinput && <TouchableOpacity style={[alignJustifyCenter, { width: wp(10) }]} onPress={OnClickSearchBar}>
             {/* <Ionicons name={"search"} size={27} color={blackColor} /> */}
             <Image source={isDarkMode ? WHITE_SEARCH_ICON : SEARCH_ICON} style={{ width: wp(8), height: hp(3.5), resizeMode: "contain", marginLeft: spacings.large }} />
           </TouchableOpacity>}
-          {shoppingCart && <TouchableOpacity style={[alignJustifyCenter, { width: wp(10) }]} onPress={OnClickCartIcon}>
-            {/* <Feather name={"shopping-cart"} size={27} color={blackColor} /> */}
-            <Image source={isDarkMode ? WHITE_SHOPPINGBUCKET_ICON : SHOPPINGBUCKET_ICON} style={{ width: wp(8), height: hp(3.3), resizeMode: "contain", marginLeft: spacings.large }} />
-            {totalQuantity > 0 && ( // Replace cartItemCount with your actual state or prop representing the item count
+          <TouchableOpacity style={[alignJustifyCenter, { width: wp(10) }]} onPress={()=> navigation.navigate("NotificationScreen")}>
+         {  text !== "Notifications" && <Image source={BELL_ICON} style={{ width: wp(8), height: hp(3.3), resizeMode: "contain", marginLeft: spacings.large }} />}
+            {/* {totalQuantity > 0 && ( // Replace cartItemCount with your actual state or prop representing the item count
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>{totalQuantity}</Text>
+              </View>
+            )} */}
+         {totalQuantity > 0 && ( // Replace cartItemCount with your actual state or prop representing the item count
               <View style={styles.badgeContainer}>
                 <Text style={styles.badgeText}>{totalQuantity}</Text>
               </View>
             )}
-          </TouchableOpacity>}
+          </TouchableOpacity>
         </View>
       </View>
       {modalVisible && <MenuModal

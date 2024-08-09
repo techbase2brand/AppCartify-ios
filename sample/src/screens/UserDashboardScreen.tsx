@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ImageBackground, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import Video from 'react-native-video';
+import convertToProxyURL from 'react-native-video-cache';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp, } from '../utils';
 import { spacings, style } from '../constants/Fonts';
+import { REEL_PLAY_WHITE } from '../assests/images';
 import { BaseStyle } from '../constants/Style';
 import { whiteColor, blackColor, grayColor, redColor, mediumGray } from '../constants/Color';
 import { SHIPPING_ADDRESS, MY_WISHLIST, ORDERS } from '../constants/Constants';
@@ -122,6 +125,49 @@ const UserDashboardScreen = () => {
     setLoadingProductId(null);
   };
 
+
+  const staticWishList = [
+    {
+      id: '1',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/150_862716cb7c14fbfe75dfd3a7d7a9b053.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$25.00', currencyCode: 'USD' }, id: 'variant1', inventoryQuantity: 10 } }]
+      }
+    },
+    {
+      id: '2',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/168_c3b95aad0ae7e748b84c2dd6fb027560.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$30.00', currencyCode: 'USD' }, id: 'variant2', inventoryQuantity: 0 } }]
+      }
+    },
+    {
+      id: '3',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/150_862716cb7c14fbfe75dfd3a7d7a9b053.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$25.00', currencyCode: 'USD' }, id: 'variant1', inventoryQuantity: 10 } }]
+      }
+    },
+    {
+      id: '4',
+      title: 'Lorem ipsum dolor sit amet consectetur',
+      images: {
+        edges: [{ node: { url: 'https://d9h69f5ndiadk.cloudfront.net/storage/2024/June/week2/168_c3b95aad0ae7e748b84c2dd6fb027560.mp4' } }]
+      },
+      variants: {
+        edges: [{ node: { price: { amount: '$30.00', currencyCode: 'USD' }, id: 'variant2', inventoryQuantity: 0 } }]
+      }
+    }
+  ];
   return (
     <KeyboardAvoidingView
       style={[flex]}
@@ -137,7 +183,7 @@ const UserDashboardScreen = () => {
                 data={ordersList}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => {
-                  console.log("response.data.orders", ordersList);
+                  // console.log("response.data.orders", ordersList);
                   return (
                     <View style={{ padding: spacings.large }}>
                       {/* <Text style={styles.itemText}>Order ID: {item.id}</Text>
@@ -206,7 +252,8 @@ const UserDashboardScreen = () => {
                     </View>)
                 }}
               />
-            </View> :
+            </View>
+            :
             <View style={[styles.centeredContainer, alignJustifyCenter]}>
               <Text style={{ color: colors.blackColor }}>No orders placed.</Text>
               <Text style={[textAlign, { color: colors.blackColor, margin: spacings.large }]}>Your all ordered will appear here. Currently its Empty</Text>
@@ -217,38 +264,80 @@ const UserDashboardScreen = () => {
         }
         {
           route.params?.from === "Saved" &&
-          (wishList && wishList.length > 0 ?
-            <View style={[styles.detailsBox]}>
-              <FlatList
-                data={wishList}
-                keyExtractor={(item) => item?.id?.toString()}
-                numColumns={2}
-                renderItem={({ item, index }) => {
-                  const imageUrl = item?.images?.edges?.[0]?.node?.url ?? item?.images?.nodes?.[0]?.url ?? item?.images?.[0]?.src;
-                  const itemPrice = item?.variants?.edges?.[0]?.node?.price?.amount ?? item?.variants?.nodes?.[0]?.price ?? item?.variants?.[0]?.price;
-                  const itemCurrencyCode = item?.variants?.edges?.[0]?.node?.price?.currencyCode ?? null;
-                  const inventoryQuantity = item?.variants?.nodes ? item?.variants?.nodes[0]?.inventoryQuantity : (item?.variants?.[0]?.inventory_quantity ? item?.variants?.[0]?.inventory_quantity : (Array.isArray(item?.inventoryQuantity) ? item?.inventoryQuantity[0] : item?.inventoryQuantity));
-                  const variantId = item?.variants?.edges ? item?.variants.edges[0]?.node.id : item.variants.nodes ? item.variants.nodes[0].id : item.variants[0].admin_graphql_api_id;
-                  console.log(item)
-                  return (
-                    <View style={[styles.itemContainer, { backgroundColor: isDarkMode ? grayColor : whiteColor }]}>
-                      <Pressable style={[positionAbsolute, alignJustifyCenter, styles.favButton]} onPress={() => handlePress(item)}>
-                        <AntDesign
-                          name={"heart"}
-                          size={20}
-                          color={colors.redColor}
-                        />
-                      </Pressable>
-                      <Image
-                        source={{ uri: imageUrl }}
-                        style={[styles.productImage, resizeModeContain]}
+          // (wishList && wishList.length > 0 ?
+          <View style={[styles.detailsBox]}>
+            <FlatList
+              data={staticWishList}
+              keyExtractor={(item) => item?.id?.toString()}
+              numColumns={2}
+              renderItem={({ item, index }) => {
+                const imageUrl = item?.images?.edges?.[0]?.node?.url ?? item?.images?.nodes?.[0]?.url ?? item?.images?.[0]?.src;
+                const itemPrice = item?.variants?.edges?.[0]?.node?.price?.amount ?? item?.variants?.nodes?.[0]?.price ?? item?.variants?.[0]?.price;
+                const itemCurrencyCode = item?.variants?.edges?.[0]?.node?.price?.currencyCode ?? null;
+                const inventoryQuantity = item?.variants?.nodes ? item?.variants?.nodes[0]?.inventoryQuantity : (item?.variants?.[0]?.inventory_quantity ? item?.variants?.[0]?.inventory_quantity : (Array.isArray(item?.inventoryQuantity) ? item?.inventoryQuantity[0] : item?.inventoryQuantity));
+                const variantId = item?.variants?.edges ? item?.variants.edges[0]?.node.id : item.variants.nodes ? item.variants.nodes[0].id : item.variants[0].admin_graphql_api_id;
+                return (
+                  <View style={[styles.itemContainer]}>
+                    <Pressable style={[positionAbsolute, alignJustifyCenter, styles.favButton, { backgroundColor: "white", borderRadius: 100, padding: 4 }]} onPress={() => handlePress(item)}>
+                      <AntDesign
+                        name={"heart"}
+                        size={18}
+                        color={colors.redColor}
                       />
-                      <View style={{ width: "100%", height: hp(7), alignItems: "center", justifyContent: "center" }}>
-                        <Text style={[styles.wishListItemName, textAlign, { color: colors.blackColor }]}>{item?.title}</Text>
-                        {itemPrice && <Text style={[styles.wishListItemPrice, textAlign, { color: colors.blackColor }]}>{itemPrice} <Text style={[styles.wishListItemPrice]}>{itemCurrencyCode}</Text></Text>}
+                    </Pressable>
+
+                    <Pressable style={[positionAbsolute, alignJustifyCenter, styles.favButton1]} onPress={() => handlePress(item)}>
+                      <Image source={REEL_PLAY_WHITE}
+                        style={{
+                          width: 25,
+                          height: 25,
+                        }} />
+                    </Pressable>
+                    {/* <Image
+                        source={{ uri: imageUrl }}
+                        style={[styles.productImage ]}
+                      /> */}
+
+
+                    <TouchableOpacity style={{width:170, height: hp(20), borderRadius:10,overflow:"hidden" }} onPress={()=> navigation.navigate("ProductDetails")}>
+                      <Video
+                        bufferConfig={{
+                          minBufferMs: 2000,
+                          maxBufferMs: 5000,
+                          bufferForPlaybackMs: 1000,
+                          bufferForPlaybackAfterRebufferMs: 1500,
+                        }}
+                        source={{ uri: convertToProxyURL(imageUrl) }}
+                        style={{width:"100%", height:"100%"}}
+                        resizeMode="cover"
+                        repeat={true}
+                        maxBitRate={2000000}
+                        hideShutterView={true}
+                        onBuffer={e => {
+                          console.log('e.isBuffering', e.isBuffering);
+                          if (e.isBuffering == true) {
+                            // setLoading(true);
+                          } else {
+                            // setLoading(false);
+                          }
+                        }}
+                      />
+                    </TouchableOpacity>
+
+                    <View style={{ width: "100%", height: hp(7), alignItems: "center", justifyContent: "center" }}>
+                      <Text style={[styles.wishListItemName, { color: colors.blackColor }]}>{item?.title}</Text>
+                      {/* <Text style={[styles.wishListItemPrice]}>{itemCurrencyCode}</Text> */}
+
+                    </View>
+                    <View style={[{ width: "100%", flexDirection: "row", paddingTop: 1, justifyContent: "space-between" }]}>
+                      {itemPrice && <View style={{ paddingTop: 8 }}>
+                        <Text style={[styles.wishListItemPrice, { color: colors.blackColor }]}>{itemPrice} </Text>
                       </View>
-                      <View style={[{ width: "100%", flexDirection: "row", paddingTop: spacings.large }, alignJustifyCenter]}>
-                        {inventoryQuantity <= 0 ? <Pressable
+                      }
+                      <TouchableOpacity style={styles.buyButton}>
+                        <Text style={{ color: '#fff', alignSelf: 'center' }}>Buy Now</Text>
+                      </TouchableOpacity>
+                      {/* {inventoryQuantity <= 0 ? <Pressable
                           style={[styles.addtocartButton, borderRadius10, alignJustifyCenter]}
                         >
                           <Text style={styles.addToCartButtonText}>Out of stock</Text>
@@ -259,24 +348,25 @@ const UserDashboardScreen = () => {
                           >
                             {loadingProductId === variantId ? <ActivityIndicator size="small" color={whiteColor} /> :
                               <Text style={styles.addToCartButtonText}>Add To Cart</Text>}
-                          </Pressable>}
-                      </View>
+                          </Pressable>} */}
                     </View>
-                  );
-                }}
-              />
-            </View> :
-            <View style={[styles.centeredContainer, alignJustifyCenter, { width: wp(80), alignSelf: "center" }]}>
-              <View>
-                <AntDesign
-                  name={"hearto"}
-                  size={50}
-                  color={colors.mediumGray}
-                />
-              </View>
-              <Text style={{ color: colors.blackColor, fontSize: style.fontSizeLarge.fontSize }}>No Saved found.</Text>
-              <Text style={{ color: colors.mediumGray, textAlign: "center" }}>You don’t have any saved items. Go to home and add some.</Text>
-            </View>)
+                  </View>
+                );
+              }}
+            />
+          </View>
+          // :
+          // <View style={[styles.centeredContainer, alignJustifyCenter, { width: wp(80), alignSelf: "center" }]}>
+          //   <View>
+          //     <AntDesign
+          //       name={"hearto"}
+          //       size={50}
+          //       color={colors.mediumGray}
+          //     />
+          //   </View>
+          //   <Text style={{ color: colors.blackColor, fontSize: style.fontSizeLarge.fontSize }}>No Saved found.</Text>
+          //   <Text style={{ color: colors.mediumGray, textAlign: "center" }}>You don’t have any saved items. Go to home and add some.</Text>
+          // </View>)
         }
         {
           route.params?.from === SHIPPING_ADDRESS &&
@@ -376,21 +466,21 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     padding: spacings.large,
-    margin: spacings.large,
-    width: wp(43),
-    borderColor: 'transparent',
-    backgroundColor: whiteColor,
+    // margin: 10,
+    width: wp(48),
+    // borderColor: 'transparent',
+    // backgroundColor: whiteColor,
     borderWidth: .1,
-    borderRadius: 10,
-    shadowColor: grayColor,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    // borderRadius: 10,
+    // shadowColor: grayColor,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 1,
+    // },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 10,
 
-    elevation: 1.5,
+    // elevation: 1.5,
   },
   itemText: {
     fontSize: style.fontSizeMedium.fontSize,
@@ -399,11 +489,11 @@ const styles = StyleSheet.create({
   },
   wishListItemName: {
     color: blackColor,
-    fontSize: style.fontSizeNormal.fontSize,
-    fontWeight: style.fontWeightThin1x.fontWeight,
+    fontSize: 14,
+    // fontWeight: style.fontWeightThin1x.fontWeight,
   },
   wishListItemPrice: {
-    fontSize: style.fontSizeSmall1x.fontSize,
+    fontSize: 18,
     fontWeight: style.fontWeightThin1x.fontWeight,
     // fontWeight: style.fontWeightMedium1x.fontWeight,
     color: blackColor,
@@ -442,17 +532,26 @@ const styles = StyleSheet.create({
     padding: spacings.large
   },
   productImage: {
-    width: "70%",
-    height: hp(12),
+    width: "100%",
+    height: hp(20),
     borderRadius: 10,
-    alignSelf: "center",
-    marginVertical: spacings.large
+    // alignSelf: "center",
+    // marginVertical: spacings.large
   },
   favButton: {
     width: wp(8),
     height: wp(8),
-    right: 2,
-    top: 2,
+    left: 15,
+    top: 15,
+    zIndex: 10,
+    // backgroundColor:whiteColor,
+    borderRadius: 5
+  },
+  favButton1: {
+    width: wp(8),
+    height: wp(8),
+    right: 15,
+    top: 15,
     zIndex: 10,
     // backgroundColor:whiteColor,
     borderRadius: 5
@@ -476,6 +575,14 @@ const styles = StyleSheet.create({
     padding: spacings.normal,
     // paddingHorizontal: spacings.large
 
+  },
+  buyButton: {
+    height: 30,
+    width: 75,
+    backgroundColor: redColor,
+    alignItems: 'center',
+    borderRadius: 6,
+    justifyContent: 'center',
   },
 });
 

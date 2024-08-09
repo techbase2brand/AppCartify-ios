@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, View, StyleSheet, Text, Image, ActivityIndicator, Pressable, RefreshControl, TouchableOpacity, ImageBackground } from 'react-native';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { SafeAreaView, ScrollView, View, StyleSheet, Text, Image, ActivityIndicator, Pressable, RefreshControl, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 import { useShopifyCheckoutSheet } from '@shopify/checkout-sheet-kit';
 import useShopify from '../hooks/useShopify';
@@ -8,14 +8,16 @@ import { Colors, useTheme } from '../context/Theme';
 import { useCart } from '../context/Cart';
 import Toast from 'react-native-simple-toast';
 import { blackColor, redColor, whiteColor, lightShadeBlue, mediumGray, grayColor } from '../constants/Color'
+import OrderSummary from '../components/OrderSummary'
 import { spacings, style } from '../constants/Fonts';
 import { BaseStyle } from '../constants/Style';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp, } from '../utils';
-import { SUBTOTAL, YOUR_CART_IS_EMPTY, AN_ERROR_OCCURED, LOADING_CART, TOTAL, TAXES, QUNATITY, CHECKOUT, STOREFRONT_DOMAIN } from '../constants/Constants';
+import { Videos, SUBTOTAL, YOUR_CART_IS_EMPTY, AN_ERROR_OCCURED, LOADING_CART, TOTAL, TAXES, QUNATITY, CHECKOUT, STOREFRONT_DOMAIN } from '../constants/Constants';
 import { logEvent } from '@amplitude/analytics-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeProductFromCart, removeProductInCart } from '../redux/actions/cartActions';
 import { BACKGROUND_IMAGE } from '../assests/images'
+import RecommendedVideo from '../components/RecommendedVideo';
 import AntDesign from 'react-native-vector-icons/dist/AntDesign';
 import Header from '../components/Header';
 import { useThemes } from '../context/ThemeContext';
@@ -116,7 +118,7 @@ function CartScreen({ navigation }: { navigation: any }): React.JSX.Element {
         <Header
           backIcon={true}
           navigation={navigation}
-          text={"Cart"} />
+          text={"MyCart"} />
         <View style={[flex, alignJustifyCenter]}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingText}>{LOADING_CART}</Text>
@@ -125,25 +127,25 @@ function CartScreen({ navigation }: { navigation: any }): React.JSX.Element {
     );
   }
 
-  if (!data || !data.cart || data?.cart?.lines?.edges?.length === 0 || !cartId) {
-    return (
-      <ImageBackground source={isDarkMode ? BACKGROUND_IMAGE : ""} style={[styles.loading, alignJustifyCenter, flex, { backgroundColor: themecolors.whiteColor }]}>
-        <Header
-          backIcon={true}
-          navigation={navigation}
-          text={"Cart"} />
-        <View style={[flex, alignJustifyCenter]}>
-          <Icon name="shopping-bag" size={60} color={themecolors.lightShadeBlue} />
-          <Text style={[styles.loadingText, { color: themecolors.blackColor }]}>{YOUR_CART_IS_EMPTY}</Text>
-          <TouchableOpacity style={[styles.addToCartButton, borderRadius10]} onPress={onPressContinueShopping}>
-            <Text style={[styles.costBlockTextStrong, textAlign, { color: whiteColor }]}>
-              Go to Shopping
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
-    );
-  }
+  // if (!data || !data.cart || data?.cart?.lines?.edges?.length === 0 || !cartId) {
+  //   return (
+  //     <ImageBackground source={isDarkMode ? BACKGROUND_IMAGE : ""} style={[styles.loading, alignJustifyCenter, flex, { backgroundColor: themecolors.whiteColor }]}>
+  //       <Header
+  //         backIcon={true}
+  //         navigation={navigation}
+  //         text={"MyCart"} />
+  //       <View style={[flex, alignJustifyCenter]}>
+  //         <Icon name="shopping-bag" size={60} color={themecolors.lightShadeBlue} />
+  //         <Text style={[styles.loadingText, { color: themecolors.blackColor }]}>{YOUR_CART_IS_EMPTY}</Text>
+  //         <TouchableOpacity style={[styles.addToCartButton, borderRadius10]} onPress={onPressContinueShopping}>
+  //           <Text style={[styles.costBlockTextStrong, textAlign, { color: whiteColor }]}>
+  //             Go to Shopping
+  //           </Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     </ImageBackground>
+  //   );
+  // }
 
   const handleRemoveToCart = (variantId: string,) => {
     removeFromCart(variantId);
@@ -216,33 +218,87 @@ function CartScreen({ navigation }: { navigation: any }): React.JSX.Element {
   const totalAmount = parseFloat(getTotalAmount()?.totalAmount);
   const taxAmount = data?.cart?.cost?.totalTaxAmount ? parseFloat(price(data?.cart?.cost?.totalTaxAmount)) : 0;
   const sum = addValues(totalAmount, taxAmount);
+
+
+  const VIDEO_DURATION = 5000;
+  const [visibleVideoIndices, setVisibleVideoIndices] = useState([]);
+  const [playingIndex, setPlayingIndex] = useState(0);
+  const timerRef = useRef(null);
+
+  const viewabilityConfig1 = useRef({
+    viewAreaCoveragePercentThreshold: 50, // Determines what percentage of the item is visible
+  }).current;
+
+  const clearAllTimers = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const togglePlayingVideo = () => {
+    setPlayingIndex((prevIndex) => (prevIndex + 1) % visibleVideoIndices.length);
+  };
+
+  useEffect(() => {
+    clearAllTimers();
+    if (visibleVideoIndices.length > 0) {
+      setPlayingIndex(0);
+      timerRef.current = setInterval(togglePlayingVideo, VIDEO_DURATION);
+    }
+
+    return () => clearAllTimers();
+  }, [visibleVideoIndices]);
+
+  const onViewableItemsChanged1 = useRef(({ viewableItems }) => {
+    const newVisibleIndices = viewableItems.map(item => item.index);
+    if (newVisibleIndices.join() !== visibleVideoIndices.join()) {
+      setVisibleVideoIndices(newVisibleIndices);
+    }
+  }).current;
+
+  const renderItem1 = useCallback(
+    ({ item, index }) => (
+      <View style={styles.videoContainer}>
+        <RecommendedVideo
+          item={item}
+          isPlaying={visibleVideoIndices[playingIndex] === index}
+        />
+      </View>
+    ),
+    [visibleVideoIndices, playingIndex]
+  );
   return (
-    <ImageBackground source={isDarkMode ? BACKGROUND_IMAGE : ""} style={[styles.loading, alignJustifyCenter, flex, { backgroundColor: themecolors.whiteColor }]}>
-      <SafeAreaView>
-        <Header
-          backIcon={true}
-          navigation={navigation}
-          text={"Cart"} />
-        <View style={{ height: hp(70) }}>
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            contentContainerStyle={styles.scrollView}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }>
-            <View style={styles.productList}>
-              {data?.cart?.lines?.edges.map(({ node }) => (
-                <CartItem
-                  key={node?.merchandise?.id}
-                  item={node}
-                  quantity={node?.quantity}
-                  loading={addingToCart?.has(node?.id)}
-                  onRemove={(variantId) => handleRemoveToCart(variantId)}
-                // onAddCartItem={(variantId, qty) => handleadddToCart(variantId, qty)}
-                // onHandleRemoveOneFromCart={(variantId, qty) => handleRemoveOneFromCart(variantId, qty)}
-                />
-              ))}
-              {/*
+    // <ImageBackground source={isDarkMode ? BACKGROUND_IMAGE : ""} style={[styles.loading, alignJustifyCenter, flex, { backgroundColor: themecolors.whiteColor }]}>
+    <SafeAreaView style={{ backgroundColor: "#fff", flex: 1 }}>
+      <Header
+        backIcon={true}
+        navigation={navigation}
+        text={"MyCart"} />
+      <View style={{ height: hp(70) }}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.scrollView}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }>
+          <View style={styles.productList}>
+            {/* {data?.cart?.lines?.edges.map(({ node }) => ( */}
+            <CartItem
+            // key={node?.merchandise?.id}
+            // item={node}
+            // quantity={node?.quantity}
+            // loading={addingToCart?.has(node?.id)}
+            // onRemove={(variantId) => handleRemoveToCart(variantId)}
+            // onAddCartItem={(variantId, qty) => handleadddToCart(variantId, qty)}
+            // onHandleRemoveOneFromCart={(variantId, qty) => handleRemoveOneFromCart(variantId, qty)}
+            />
+            <CartItem />
+            <CartItem />
+
+
+            {/* ))} */}
+            {/*
             {((data?.cart?.lines) ? (data?.cart?.lines?.edges) : cartItemsFromRedux).map((item) => {
               const node = data?.cart?.lines ? item.node : item;
               return (
@@ -255,55 +311,97 @@ function CartScreen({ navigation }: { navigation: any }): React.JSX.Element {
                 />
               );
             })} */}
+          </View>
+          {/* Recommended videos section */}
+          <View style={{ marginVertical: 10, marginLeft: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: "space-between", marginBottom: 10, width: wp(95) }}>
+              {/* <Image source={REEL_PLAY_BLACK} style={styles.reelIcon} /> */}
+              <Text
+                style={{
+                  fontSize: 18,
+                  marginTop: 5,
+                  fontWeight: '600',
+                  color: blackColor,
+                }}>
+                Recommended
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  marginTop: 5,
+                  fontWeight: '500',
+                  color: redColor,
+                }}>
+                See All
+              </Text>
             </View>
-            <View style={styles.costContainer}>
-              <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow]}>
-                <Text style={styles.costBlockText}>{SUBTOTAL}</Text>
-                <Text style={[styles.costBlockText, { color: themecolors.blackColor }]}>
-                  {/* {price(data.cart.cost.subtotalAmount)} */}
-                  {getTotalAmount().totalAmount} {getTotalAmount().currencyCode}
-                </Text>
-              </View>
+            {/* </View> */}
+            <FlatList
+              data={Videos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderItem1}
+              keyExtractor={item => item.video_id}
+            // onViewableItemsChanged={onViewableItemsChanged1}
+            // viewabilityConfig={viewabilityConfig1}
+            // getItemLayout={(data, index) => (
+            //   { length: width, offset: width * index, index }
+            // )}
+            />
 
-              <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow]}>
-                <Text style={styles.costBlockText}>{TAXES}</Text>
-                <Text style={[styles.costBlockText, { color: themecolors.blackColor }]}>
-                  {price(data?.cart?.cost?.totalTaxAmount)}
-                </Text>
-              </View>
+          </View>
 
-              <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow, { borderTopColor: colors.border, borderTopWidth: 1, marginTop: spacings.large }]}>
-                <Text style={[styles.costBlockTextStrong, { color: themecolors.blackColor }]}>{TOTAL}</Text>
-                <Text style={[styles.costBlockTextStrong, { color: themecolors.blackColor }]}>
-                  {/* {price(data.cart.cost.totalAmount)} */}
-                  {sum.toFixed(2)} {getTotalAmount().currencyCode}
-                </Text>
-              </View>
-              <Text style={{
-                fontSize: style.fontSizeNormal1x.fontSize,
-                marginVertical: spacings.Large2x,
-                fontWeight: style.fontWeightThin1x.fontWeight,
-                lineHeight: 20,
-                color: themecolors.blackColor,
-              }}>Note : Shipping will be calculated at checkout.</Text>
-
+          <View style={styles.costContainer}>
+            <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow]}>
+              <Text style={styles.costBlockText}>{SUBTOTAL}</Text>
+              <Text style={[styles.costBlockText, { color: themecolors.blackColor }]}>
+                {/* {price(data.cart.cost.subtotalAmount)} */}
+                {getTotalAmount().totalAmount} {getTotalAmount().currencyCode}
+              </Text>
             </View>
-          </ScrollView>
-        </View>
-        {totalQuantity > 0 && (
-          <Pressable
-            style={[styles.cartButton, borderRadius10, alignJustifyCenter]}
-            disabled={totalQuantity === 0}
-            onPress={presentCheckout}>
-            <Text style={[styles.cartButtonText, textAlign]}>{CHECKOUT}</Text>
-            {/* <Text style={[styles.cartButtonTextSubtitle, textAlign]}>
-                {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} -{' '}
-                {sum} {getTotalAmount().currencyCode}
-              </Text> */}
-          </Pressable>
-        )}
-      </SafeAreaView>
-    </ImageBackground>
+
+            <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow]}>
+              <Text style={styles.costBlockText}>{TAXES}</Text>
+              <Text style={[styles.costBlockText, { color: themecolors.blackColor }]}>
+                {price(data?.cart?.cost?.totalTaxAmount)}
+              </Text>
+            </View>
+
+            <View style={[styles.costBlock, justifyContentSpaceBetween, flexDirectionRow, { borderTopColor: colors.border, borderTopWidth: 1, marginTop: spacings.large }]}>
+              <Text style={[styles.costBlockTextStrong, { color: themecolors.blackColor }]}>{TOTAL}</Text>
+              <Text style={[styles.costBlockTextStrong, { color: themecolors.blackColor }]}>
+                {/* {price(data.cart.cost.totalAmount)} */}
+                {sum.toFixed(2)} {getTotalAmount().currencyCode}
+              </Text>
+            </View>
+            <Text style={{
+              fontSize: style.fontSizeNormal1x.fontSize,
+              marginVertical: spacings.Large2x,
+              fontWeight: style.fontWeightThin1x.fontWeight,
+              lineHeight: 20,
+              color: themecolors.blackColor,
+            }}>Note : Shipping will be calculated at checkout.</Text>
+          </View>
+          <OrderSummary />
+
+          <View style={{ marginVertical: 20, width: wp(92), alignSelf: "center" }}>
+            <Text>CANCELLATION POLICY</Text>
+            <Text style={{ fontSize: 14, marginTop: 10 }}>The name says it all, the right size slightly snugs the body leaving enough room for comfort in the sleeves and waist <Text style={{ color: redColor, textDecorationLine: "underline" }}>Read more</Text> </Text>
+          </View>
+        </ScrollView>
+      </View>
+      {/* {totalQuantity > 0 && ( */}
+      <Pressable
+        style={[styles.cartButton, borderRadius10, alignJustifyCenter]}
+        disabled={totalQuantity === 0}
+        onPress={presentCheckout}>
+        <Text style={[styles.cartButtonText, textAlign]}>{CHECKOUT}</Text>
+
+      </Pressable>
+      {/* )} */}
+    </SafeAreaView>
+    // {/* </ImageBackground> */}
   );
 }
 
@@ -340,45 +438,52 @@ function CartItem({
   const handleRemoveItem = () => {
     onRemove(item.id);
   };
-  // const incrementQuantity = () => {
-  //   logEvent('Increase Product Quantity');
-  //   setProductQuantity(productquantity + 1);
-  //   onAddCartItem(item.merchandise.id, 1);
-  // };
+  const incrementQuantity = () => {
+    logEvent('Increase Product Quantity');
+    // setProductQuantity(productquantity + 1);
+    // onAddCartItem(item.merchandise.id, 1);
+  };
 
-  // const decrementQuantity = () => {
-  //   logEvent('Decrease Product Quantity');
-  //   if (productquantity > 1) {
-  //     setProductQuantity(productquantity - 1);
-  //     const variantId = `${item.merchandise.id}`;
-  //     console.log('Attempting to remove from cartin decrementQuantity:', variantId);
-  //     onHandleRemoveOneFromCart(variantId, productquantity - 1);
-  //   } else {
-  //     handleRemoveItem();
-  //   }
-  // };
+  const decrementQuantity = () => {
+    logEvent('Decrease Product Quantity');
+    // if (productquantity > 1) {
+    //   setProductQuantity(productquantity - 1);
+    //   const variantId = `${item.merchandise.id}`;
+    //   console.log('Attempting to remove from cartin decrementQuantity:', variantId);
+    //   onHandleRemoveOneFromCart(variantId, productquantity - 1);
+    // } else {
+    //   handleRemoveItem();
+    // }
+  };
   return (
     <View
       key={item?.id}
       style={{
         ...styles.productItem,
         ...(loading ? styles.productItemLoading : {}),
-        borderWidth: 1, borderColor: themecolors.mediumGray, backgroundColor: isDarkMode ? grayColor : whiteColor
+        borderWidth: 1, borderColor: "#E6E6E6", backgroundColor: isDarkMode ? grayColor : whiteColor
       }}>
       <Image
         resizeMethod="resize"
         style={[styles.productImage, resizeModeCover, borderRadius5]}
-        alt={item?.merchandise?.image?.altText}
-        source={{ uri: item?.merchandise?.image?.url }}
+        // alt={item?.merchandise?.image?.altText}
+        // source={{ uri: item?.merchandise?.image?.url }}
+        source={require('../assests/notificationimage.png')}
       />
       <View style={[styles.productText, flex, alignJustifyCenter, flexDirectionRow]}>
         <View style={[flex]}>
           <Text style={[styles.productTitle, { color: themecolors.blackColor }]}>
-            {item?.merchandise?.product?.title}
+            {/* {item?.merchandise?.product?.title} */}
+            Regular Fit Black
+          </Text>
+          <Text style={[styles.productTitle, { color: themecolors.blackColor, fontSize: 12, marginBottom: 20 }]}>
+            {/* {item?.merchandise?.product?.title} */}
+            Color :  Black
           </Text>
           <Text style={[styles.productPrice, { color: themecolors.blackColor }]}>
             {/* {price(item.cost?.totalAmount)} */}
-            {price(item?.merchandise?.price)}
+            $ 12
+            {/* {price(item?.merchandise?.price)} */}
             {/* {itemPrice} */}
           </Text>
           {/* <Text style={styles.productDescription}>{QUNATITY}: {quantity}</Text> */}
@@ -396,16 +501,16 @@ function CartItem({
               />
             )}
           </Pressable>
-          <Text style={[styles.productDescription, { color: themecolors.blackColor }]}>{QUNATITY}: {quantity}</Text>
-          {/* <View style={[styles.quantityContainer, borderWidth1, { backgroundColor: isDarkMode ? blackColor : whiteColor, borderColor: themecolors.blackColor }]}>
+          <Text style={[styles.productDescription, { color: themecolors.blackColor }]}></Text>
+          <View style={[styles.quantityContainer, , { backgroundColor: isDarkMode ? blackColor : whiteColor, borderColor: themecolors.blackColor }]}>
             <TouchableOpacity onPress={decrementQuantity}>
-              <Text style={[styles.quantityButton, { color: themecolors.blackColor }]}>-</Text>
+              <Text style={[styles.quantityButton, borderWidth1, { color: themecolors.blackColor, borderColor: "#E6E6E6" }]}>-</Text>
             </TouchableOpacity>
-            <Text style={[styles.quantity, { color: themecolors.blackColor }]}>{productquantity}</Text>
+            <Text style={[styles.quantity, { color: themecolors.blackColor }]}>2</Text>
             <TouchableOpacity onPress={incrementQuantity}>
-              <Text style={[styles.quantityButton, { color: themecolors.blackColor }]}>+</Text>
+              <Text style={[styles.quantityButton, borderWidth1, { color: themecolors.blackColor, borderColor: "#E6E6E6" }]}>+</Text>
             </TouchableOpacity>
-          </View> */}
+          </View>
         </View>
       </View>
     </View >
@@ -415,7 +520,7 @@ function CartItem({
 function createStyles(colors: Colors) {
   return StyleSheet.create({
     loading: {
-      padding: 2,
+      // padding: 2,
     },
     loadingText: {
       marginVertical: spacings.Large2x,
@@ -431,7 +536,7 @@ function createStyles(colors: Colors) {
       height: hp(6),
       left: 0,
       right: 0,
-      bottom:30,
+      bottom: 10,
       marginHorizontal: spacings.large,
       padding: spacings.large,
       backgroundColor: redColor,
@@ -455,6 +560,8 @@ function createStyles(colors: Colors) {
     productItem: {
       display: 'flex',
       flexDirection: 'row',
+      justifyContent: "center",
+      alignItems: "center",
       marginBottom: spacings.large,
       padding: spacings.large,
       backgroundColor: whiteColor,
@@ -478,7 +585,7 @@ function createStyles(colors: Colors) {
     productDescription: {
       fontSize: style.fontSizeNormal.fontSize,
       color: colors.textSubdued,
-      padding: spacings.xLarge
+      // padding: spacings.xLarge
     },
     productPrice: {
       fontSize: style.fontSizeNormal.fontSize,
@@ -495,14 +602,14 @@ function createStyles(colors: Colors) {
       color: colors.textSubdued,
     },
     productImage: {
-      width: wp(13),
+      width: wp(20),
       height: hp(10),
     },
     costContainer: {
       marginBottom: spacings.xLarge,
       marginHorizontal: spacings.Large1x,
       paddingTop: spacings.xLarge,
-      paddingBottom: hp(10),
+      // paddingBottom: hp(10),
       paddingHorizontal: spacings.xsmall,
       borderTopWidth: 1,
       borderTopColor: colors.border,
@@ -549,7 +656,7 @@ function createStyles(colors: Colors) {
       paddingHorizontal: 12,
       paddingVertical: 2,
       fontSize: 16,
-      fontWeight: 'bold',
+      // fontWeight: 'bold',
       color: redColor,
     },
   });

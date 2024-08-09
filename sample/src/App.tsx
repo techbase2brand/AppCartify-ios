@@ -17,11 +17,12 @@ import { ProductVariant, ShopifyProduct } from '../@types';
 import ErrorBoundary from './ErrorBoundary';
 import { CheckoutException } from '@shopify/checkout-sheet-kit';
 import { whiteColor, grayColor, redColor } from '../src/constants/Color';
-import { PROFILE_ICON, HOME_ICON, SHOPPINGCART_ICON, SELECTEDBAR_ICON, HEART_ICON } from '../src/assests/images';
-import { MY_WISHLIST, HOME, FASHION, CLOTHING, FOOD, DRINKS, BEAUTY, ELECTRONICS, getStoreDomain, getStoreFrontAccessToken, STOREFRONT_DOMAIN, STOREFRONT_ACCESS_TOKEN, ADMINAPI_ACCESS_TOKEN } from '../src/constants/Constants';
+import { PROFILE_ICON, HOME_ICON, SHOPPINGCART_ICON, SELECTEDBAR_ICON, HEART_ICON, CART_ICON } from '../src/assests/images';
+// import { MY_WISHLIST, HOME, FASHION, CLOTHING, FOOD, DRINKS, BEAUTY, ELECTRONICS, getStoreDomain, getStoreFrontAccessToken, STOREFRONT_DOMAIN, STOREFRONT_ACCESS_TOKEN, ADMINAPI_ACCESS_TOKEN } from '../src/constants/Constants';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp, } from '../src/utils';
 import SearchScreen from './screens/SearchScreen';
 // import SplashScreen from 'react-native-splash-screen';
+import BottomTabNavigator from './navigations/BottomTabNavigator';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreenFood from './screens/HomeScreenFood';
@@ -30,7 +31,7 @@ import SearchResultScreen from './screens/SearchResultScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import UserDashboardScreen from './screens/UserDashboardScreen';
 import { AuthContext, AuthProvider } from './context/AuthProvider';
-import { Provider } from 'react-redux';
+// import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '../src/redux/store';
 import messaging from '@react-native-firebase/messaging';
@@ -50,6 +51,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProviders } from './context/ThemeContext';
 import { useThemes } from '../src/context/ThemeContext';
 import { lightColors, darkColors } from '../src/constants/Color';
+
+import RNFetchBlob from 'rn-fetch-blob';
+import { Provider, useDispatch } from 'react-redux';
+import { fetchVideosRequest, fetchVideosSuccess, fetchVideosFailure, fetchCachedVideosSuccess, setCachedFiles } from './redux/actions/videoActions';
+import { ADMINAPI_ACCESS_TOKEN, STOREFRONT_DOMAIN, STOREFRONT_ACCESS_TOKEN } from './constants/Constants';
+import HomeScreen from './screens/HomeScreen';
+import ReelsScreen from './screens/ReelsScreen';
+import NotificationScreen from './screens/NotificationScreen';
+import ReviewScreen from './screens/ReviewScreen';
+import AccountScreen from './screens/AccountScreen';
+
+
+
+
 const colorScheme = ColorScheme.web;
 const config: Configuration = {
   colorScheme,
@@ -90,7 +105,7 @@ function AppWithTheme({ children }: PropsWithChildren) {
 function AppWithContext({ children }: PropsWithChildren) {
   const selectedItem = useSelector((state) => state.menu.selectedItem);
   const shopify = useShopifyCheckoutSheet();
-  // const storeDomain = getStoreDomain(selectedItem)
+  // // const storeDomain = getStoreDomain(selectedItem)
   // const storeFrontAccessToken = getStoreFrontAccessToken(selectedItem)
   const storeDomain = STOREFRONT_DOMAIN
   const storeFrontAccessToken = STOREFRONT_ACCESS_TOKEN
@@ -167,11 +182,28 @@ function HomeStack() {
         headerRight: CartIcon,
       }}
     >
-      <Stack.Screen
+      {/* <Stack.Screen
         name="HomeScreen"
         component={selectedItem === FOOD ? HomeScreenFood : selectedItem === DRINKS ? HomeScreenDrink : selectedItem === CLOTHING ? HomeScreenClothing : selectedItem === BEAUTY ? HomeScreenBeauty : selectedItem === "Electronics" ? HomeScreenElectronic : selectedItem === "AutoMotives" ? HomeScreenAutomotives : selectedItem === "Sports" ? HomeScreenSports : HomeScreenFood}
         // component={selectedItem === FOOD ? HomeScreenFood : selectedItem === DRINKS ? HomeScreenDrink : selectedItem === CLOTHING ? HomeScreenClothing : selectedItem === BEAUTY ? HomeScreenBeauty : selectedItem === "Electronics" ? HomeScreenElectronic : HomeScreenFood}
         options={{ headerShown: false }}
+      /> */}
+      <Stack.Screen
+        name="HomeScreen"
+        component={HomeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ReelsScreen"
+        component={ReelsScreen}
+        options={{ headerShown: false }}
+
+      />
+      <Stack.Screen
+        name="NotificationScreen"
+        component={NotificationScreen}
+        options={{ headerShown: false }}
+
       />
       <Stack.Screen
         name="Collections"
@@ -190,11 +222,18 @@ function HomeStack() {
         name="ProductDetails"
         component={ProductDetailsScreen}
         options={({ route }) => ({
-          headerTitle: route.params.product.title,
+          // headerTitle: route.params.product.title,
+          headerTitle:"Details",
           headerShown: false,
           headerBackVisible: true,
           headerBackTitle: 'Back',
         })}
+      />
+      <Stack.Screen
+        name="ReviewScreen"
+        component={ReviewScreen}
+        options={{ headerShown: false }}
+
       />
       <Stack.Screen
         name="CartModal"
@@ -257,10 +296,23 @@ function HomeWithAuthStack() {
     >
       <Stack.Screen
         name="HomeScreen"
-        component={selectedItem === FOOD ? HomeScreenFood : selectedItem === DRINKS ? HomeScreenDrink : selectedItem === CLOTHING ? HomeScreenClothing : selectedItem === BEAUTY ? HomeScreenBeauty : selectedItem === "Electronics" ? HomeScreenElectronic : selectedItem === "AutoMotives" ? HomeScreenAutomotives : selectedItem === "Sports" ? HomeScreenSports : HomeScreenFood}
+        component={HomeScreen}
+        // component={selectedItem === FOOD ? HomeScreenFood : selectedItem === DRINKS ? HomeScreenDrink : selectedItem === CLOTHING ? HomeScreenClothing : selectedItem === BEAUTY ? HomeScreenBeauty : selectedItem === "Electronics" ? HomeScreenElectronic : selectedItem === "AutoMotives" ? HomeScreenAutomotives : selectedItem === "Sports" ? HomeScreenSports : HomeScreenFood}
 
         // component={selectedItem === FOOD ? HomeScreenFood : selectedItem === DRINKS ? HomeScreenDrink : selectedItem === CLOTHING ? HomeScreenClothing : selectedItem === BEAUTY ? HomeScreenBeauty : selectedItem === "Electronics" ? HomeScreenElectronic : HomeScreenFood}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ReelsScreen"
+        component={ReelsScreen}
+        options={{ headerShown: false }}
+
+      />
+      <Stack.Screen
+        name="NotificationScreen"
+        component={NotificationScreen}
+        options={{ headerShown: false }}
+
       />
       <Stack.Screen
         name="Collections"
@@ -279,12 +331,18 @@ function HomeWithAuthStack() {
         name="ProductDetails"
         component={ProductDetailsScreen}
         options={({ route }) => ({
-          headerTitle: route.params.product.title,
+          // headerTitle: route.params.product.title,
+          headerTitle: "Details",
           headerShown: false,
           headerBackVisible: true,
           headerBackTitle: 'Back',
         })}
       />
+        <Stack.Screen
+        name="ReviewScreen"
+        component={ReviewScreen}
+        options={{ headerShown: false }}
+/>
       <Stack.Screen
         name="CartModal"
         component={CartScreen}
@@ -584,8 +642,8 @@ function AppWithNavigation({ route }: { route: any }) {
         }}
       />
       <Tab.Screen
-        name="Catalog"
-        component={CatalogStack}
+        name="Cart"
+        component={CartScreen}
         options={({ route }) => {
           const routeName = getFocusedRouteNameFromRoute(route);
           return {
@@ -602,7 +660,7 @@ function AppWithNavigation({ route }: { route: any }) {
                   )}
                 </View>
                 <Image
-                  source={SHOPPINGCART_ICON}
+                  source={CART_ICON}
                   style={{ width: 24, height: 24, resizeMode: "contain", tintColor: focused ? redColor : isDarkMode ? whiteColor : grayColor }}
                 />
               </View>
@@ -612,7 +670,8 @@ function AppWithNavigation({ route }: { route: any }) {
       />
       <Tab.Screen
         name="Profile"
-        component={isLoggedIn || userLoggedIn ? ProfileStack : AuthStack}
+        // component={isLoggedIn || userLoggedIn ? ProfileStack : AuthStack}
+        component={AccountScreen}
         options={{
           tabBarStyle: { display: isLoggedIn || userLoggedIn ? 'flex' : 'none', backgroundColor: colors.whiteColor },
           headerShown: false,
@@ -638,8 +697,75 @@ function AppWithNavigation({ route }: { route: any }) {
   );
 }
 function App({ navigation }: { navigation: any }) {
+  const dispatch = useDispatch();
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    dispatch(fetchVideosRequest());
+    const fetchproduct = async () => {
+      const myHeaders = new Headers();
+      myHeaders.append("Content-Type", "application/json");
+      myHeaders.append("X-Shopify-Access-Token", ADMINAPI_ACCESS_TOKEN);
+      const graphql = JSON.stringify({
+
+        query: "query { products(first: 250) { edges { node { id title vendor handle descriptionHtml variants(first: 100) { edges { node { id title inventoryQuantity price compareAtPrice selectedOptions { name value } } } } images(first: 30) { edges { node { src originalSrc altText } } } media(first: 10) { edges { node { mediaContentType ... on Video { sources { url } } } } } } } } }",
+
+        variables: {}
+      });
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: graphql,
+        redirect: "follow"
+      };
+      fetch(`https://${STOREFRONT_DOMAIN}/admin/api/2024-01/graphql.json`, requestOptions)
+        .then((response) => response.json())
+        .then((result) => {
+          const fetchedProducts = result?.data?.products?.edges;
+          const productMedia = fetchedProducts?.map(productEdge =>
+            productEdge?.node?.media?.edges?.map(mediaEdge => mediaEdge?.node?.sources[0])
+          );
+          productVideosUrl = productMedia.reduce((acc, val) => acc.concat(val), []);
+          dispatch(fetchVideosSuccess(fetchedProducts));
+
+          cacheVideos(productVideosUrl)
+
+          // console.log("productmeddia", fetchedProducts);
+        })
+        .catch((error) => console.log(error));
+    }
+    fetchproduct()
+  }, [dispatch])
+
+  const cacheVideos = async (videoList) => {
+    const MAX_CACHE_SIZE = 20; // Example maximum cache size
+    const cachedVideos = await Promise.all(
+      videoList.map(async (video) => {
+        if (!video.url) {
+          console.error(`Video URL is null or undefined for video ID: ${video.video_id}`);
+          return null;
+        }
+        const localPath = `${RNFetchBlob.fs.dirs.DocumentDir}/${video.url}.mp4`;
+        try {
+          const exists = await RNFetchBlob.fs.exists(localPath);
+          if (!exists) {
+            await RNFetchBlob.config({ path: localPath }).fetch('GET', video.url);
+          }
+          return { ...video, url: 'file://' + localPath, lastAccessed: Date.now() };
+        } catch (error) {
+          console.error('Error caching video:', error);
+          return null;
+        }
+      })
+    );
+
+    const validCachedVideos = cachedVideos.filter(Boolean);
+    // console.log('Valid cached videos:', validCachedVideos);
+    dispatch(setCachedFiles(validCachedVideos));
+    // setCachedFiles((prevCachedFiles) => [...prevCachedFiles, ...validCachedVideos]);
+    // evictOldVideosIfNeeded();
+  };
 
 
   useEffect(() => {
@@ -647,71 +773,71 @@ function App({ navigation }: { navigation: any }) {
       setIsLoading(false); // Hide the splash screen after 3 seconds
     }, 2000);
   }, []);
-  const requestPermissionAndToken = async () => {
-    try {
-      // Request permission for notifications
-      await messaging().requestPermission();
+  // const requestPermissionAndToken = async () => {
+  //   try {
+  //     // Request permission for notifications
+  //     await messaging().requestPermission();
 
-      // Get the FCM token
-      const fcmToken = await messaging().getToken();
-      console.log('FCM Token:', fcmToken);
+  //     // Get the FCM token
+  //     const fcmToken = await messaging().getToken();
+  //     console.log('FCM Token:', fcmToken);
 
-      // Send this token to your server for later use
-      // YourServer.sendTokenToServer(fcmToken);
-    } catch (error) {
-      console.error('Error getting FCM token:', error);
-    }
-  }
+  //     // Send this token to your server for later use
+  //     // YourServer.sendTokenToServer(fcmToken);
+  //   } catch (error) {
+  //     console.error('Error getting FCM token:', error);
+  //   }
+  // }
 
-  const fetchAndStoreShopCurrency = async () => {
-    const shopifyGraphQLUrl = `https://${STOREFRONT_DOMAIN}/admin/api/2024-04/graphql.json`; // Replace with your shop name and API version
+  // const fetchAndStoreShopCurrency = async () => {
+  //   const shopifyGraphQLUrl = `https://${STOREFRONT_DOMAIN}/admin/api/2024-04/graphql.json`; // Replace with your shop name and API version
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': ADMINAPI_ACCESS_TOKEN,
-    };
+  //   const headers = {
+  //     'Content-Type': 'application/json',
+  //     'X-Shopify-Access-Token': ADMINAPI_ACCESS_TOKEN,
+  //   };
 
-    const getShopDetailsQuery = `
-      query {
-        shop {
-          currencyCode
-        }
-      }
-    `;
+  //   const getShopDetailsQuery = `
+  //     query {
+  //       shop {
+  //         currencyCode
+  //       }
+  //     }
+  //   `;
 
-    try {
-      const response = await axios.post(
-        shopifyGraphQLUrl,
-        { query: getShopDetailsQuery },
-        { headers }
-      );
+  //   try {
+  //     const response = await axios.post(
+  //       shopifyGraphQLUrl,
+  //       { query: getShopDetailsQuery },
+  //       { headers }
+  //     );
 
-      if (response.data.data && response.data.data.shop) {
-        const currencyCode = response.data.data.shop.currencyCode;
-        await AsyncStorage.setItem('shopCurrency', currencyCode);
-        return currencyCode;
-      } else {
-        throw new Error('Failed to fetch shop details');
-      }
-    } catch (error) {
-      console.error('Error fetching shop details:', error);
-      throw error;
-    }
-  };
-  useEffect(() => {
-    fetchAndStoreShopCurrency()
-    requestPermissionAndToken()
-    init('ea263d07be72d0ee3d73445ccfda8c65')
-    logEvent('App Started');
+  //     if (response.data.data && response.data.data.shop) {
+  //       const currencyCode = response.data.data.shop.currencyCode;
+  //       await AsyncStorage.setItem('shopCurrency', currencyCode);
+  //       return currencyCode;
+  //     } else {
+  //       throw new Error('Failed to fetch shop details');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching shop details:', error);
+  //     throw error;
+  //   }
+  // };
+  // useEffect(() => {
+  //   fetchAndStoreShopCurrency()
+  //   requestPermissionAndToken()
+  //   init('ea263d07be72d0ee3d73445ccfda8c65')
+  //   logEvent('App Started');
 
-    // SplashScreen.hide();
-    const timeout = setTimeout(() => setShowSplash(false), 3000);
-    return () => clearTimeout(timeout);
-  }, []);
+  //   // SplashScreen.hide();
+  //   const timeout = setTimeout(() => setShowSplash(false), 3000);
+  //   return () => clearTimeout(timeout);
+  // }, []);
 
-  
+
   if (isLoading) {
-    return <SplashScreen/>; // Render the splash screen while loading
+    return <SplashScreen />; // Render the splash screen while loading
   }
   return (
     <ErrorBoundary>
@@ -725,8 +851,9 @@ function App({ navigation }: { navigation: any }) {
                   <AuthProvider>
                     <PersistGate loading={null} persistor={persistor}>
                       {/* {showSplash ? <CustomSplashScreen /> : <AppWithNavigation />} */}
-                      <SafeAreaView style={{flex:1}}>
-                      <AppWithNavigation />
+                      <SafeAreaView style={{ flex: 1 }}>
+                        {/* <BottomTabNavigator/> */}
+                        <AppWithNavigation />
 
                       </SafeAreaView>
                     </PersistGate>
